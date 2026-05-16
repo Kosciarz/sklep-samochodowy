@@ -1,14 +1,15 @@
-import './App.css'
-import { cars } from './data/cars'
-import CarList from './components/CarList'
-import { Container } from 'react-bootstrap'
+import "./App.css";
+import { cars } from "./data/cars";
+import CarList from "./components/CarList";
+import NavBar from "./components/NavBar";
 
 function App() {
   return (
-    <Container>
+    <>
+      <NavBar />
       <CarList data={cars} />
-    </Container>
-  )
+    </>
+  );
 }
 
-export default App
+export default App;
