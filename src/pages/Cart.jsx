@@ -8,7 +8,7 @@ import { useCart } from "../components/CartProvider";
 import { Link } from "react-router-dom";
 
 export default function CartPage() {
-  const { cart, removeFromCart, addToCart } = useCart();
+  const { cart, addToCart, removeFromCart, clearCart } = useCart();
 
   const total = cart.reduce(
     (sum, item) => sum + item.car.price * item.count,
@@ -17,7 +17,14 @@ export default function CartPage() {
 
   return (
     <Container className="py-4">
-      <h2 className="mb-4">Your Cart</h2>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="mb-0">Your Cart</h2>
+        {cart.length > 0 && (
+          <Button variant="outline-danger" size="sm" onClick={clearCart}>
+            Clear Cart
+          </Button>
+        )}
+      </div>
 
       <Row className="g-4">
         <Col lg={8}>
