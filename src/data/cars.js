@@ -13,61 +13,73 @@ import rimacNevera from "../assets/rimac_nevera.webp";
 
 export const cars = [
   {
+    id: "audi-rs6-avant",
     name: "Audi RS6 Avant",
     price: 420000,
     image: audiRS6,
   },
   {
+    id: "bmw-5-series",
     name: "BMW 5 Series",
     price: 280000,
     image: bmw5,
   },
   {
+    id: "hennessey-venom-f5",
     name: "Hennessey Venom F5",
     price: 7500000,
     image: venomF5,
   },
   {
+    id: "koenigsegg-jesko",
     name: "Koenigsegg Jesko",
     price: 12000000,
     image: jesko,
   },
   {
+    id: "lamborghini-huracan",
     name: "Lamborghini Huracan",
     price: 950000,
     image: huracan,
   },
   {
+    id: "lamborghini-urus",
     name: "Lamborghini Urus",
     price: 850000,
     image: urus,
   },
   {
+    id: "mclaren-p1",
     name: "McLaren P1",
     price: 6000000,
     image: mclarenP1,
   },
   {
+    id: "mercedes-benz-e-class",
     name: "Mercedes-Benz E-Class",
     price: 320000,
     image: mercedesE,
   },
   {
+    id: "porsche-911",
     name: "Porsche 911",
     price: 650000,
     image: porsche911,
   },
   {
+    id: "porsche-918-spyder",
     name: "Porsche 918 Spyder",
     price: 4500000,
     image: porsche918,
   },
   {
+    id: "range-rover",
     name: "Range Rover",
     price: 550000,
     image: rangeRover,
   },
   {
+    id: "rimac-nevera",
     name: "Rimac Nevera",
     price: 8000000,
     image: rimacNevera,

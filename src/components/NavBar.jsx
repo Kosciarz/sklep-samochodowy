@@ -5,7 +5,7 @@ export default function NavBar() {
   return (
     <Navbar className="bg-body-tertiary">
       <Container>
-        <Navbar.Brand>Sklep Samochodowy</Navbar.Brand>
+        <Navbar.Brand>Car dealership</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav" className="justify-content-end">
           <Nav>
@@ -13,7 +13,7 @@ export default function NavBar() {
               Home
             </Nav.Link>
             <Nav.Link as={NavLink} to="/cart">
-              Koszyk
+              Cart
             </Nav.Link>
           </Nav>
         </Navbar.Collapse>
