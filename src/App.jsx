@@ -1,15 +1,18 @@
 import "./App.css";
-import { cars } from "./data/cars";
-import CarList from "./components/CarList";
-import NavBar from "./components/NavBar";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import Root from "./pages/Root";
+import Home from "./pages/Home";
+import Cart from "./pages/Cart";
 
-function App() {
-  return (
-    <>
-      <NavBar />
-      <CarList data={cars} />
-    </>
-  );
+const router = createBrowserRouter([{
+  path: "/",
+  element: <Root />,
+  children: [
+    { index: true, element: <Home />},
+    { path: "cart", element: <Cart />},
+  ]
+}]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
 }
-
-export default App;

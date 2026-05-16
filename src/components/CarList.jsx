@@ -3,7 +3,7 @@ import Car from "./Car";
 
 export default function CarList({ data }) {
   return (
-    <Container className="mt-4">
+    <Container className="my-4">
       <Row className="g-4 justify-content-center">
         {data.map((car, index) => (
           <Col key={index} xs="auto">
