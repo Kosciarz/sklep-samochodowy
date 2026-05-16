@@ -7,10 +7,13 @@ import ListGroup from "react-bootstrap/ListGroup";
 import { useCart } from "../components/CartProvider";
 import { Link } from "react-router-dom";
 
-function CartPage() {
-  const { cart, removeFromCart } = useCart();
+export default function CartPage() {
+  const { cart, removeFromCart, addToCart } = useCart();
 
-  const total = cart.reduce((sum, item) => sum + item.car.price, 0);
+  const total = cart.reduce(
+    (sum, item) => sum + item.car.price * item.count,
+    0,
+  );
 
   return (
     <Container className="py-4">
@@ -43,18 +46,35 @@ function CartPage() {
                       <Card.Title className="d-flex justify-content-between">
                         {car.name}
                         <span className="text-primary">
-                          {car.price.toLocaleString()} zł
+                          {(car.price * item.count).toLocaleString()} zł
                         </span>
                       </Card.Title>
 
-                      <div className="d-flex gap-2">
+                      <div className="d-flex align-items-center gap-2">
                         <Button
-                          variant="outline-danger"
+                          variant="outline-secondary"
                           size="sm"
                           onClick={() => removeFromCart(car)}
                         >
-                          Remove
+                          −
                         </Button>
+
+                        <span className="fw-semibold px-1">{item.count}</span>
+
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={() => addToCart(car)}
+                        >
+                          +
+                        </Button>
+
+                        <span
+                          className="text-muted ms-2"
+                          style={{ fontSize: "0.85rem" }}
+                        >
+                          × {car.price.toLocaleString()} zł each
+                        </span>
                       </div>
                     </Card.Body>
                   </Col>
@@ -100,5 +120,3 @@ function CartPage() {
     </Container>
   );
 }
-
-export default CartPage;
