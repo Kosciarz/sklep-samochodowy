@@ -2,6 +2,10 @@ use anyhow::Result;
 use axum::{Json, Router, extract::State, routing::get};
 use serde::Serialize;
 use sqlx::{PgPool, postgres::PgPoolOptions, prelude::FromRow};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+};
 
 #[derive(Clone)]
 struct AppState {
@@ -30,6 +34,15 @@ async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").unwrap();
 
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::OPTIONS,
+        ])
+        .allow_headers([axum::http::header::CONTENT_TYPE]);
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
@@ -40,6 +53,8 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/cars", get(get_cars))
+        .nest_service("/assets", ServeDir::new("assets"))
+        .layer(cors)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(std::net::SocketAddrV4::new(
@@ -47,8 +62,6 @@ async fn main() -> Result<()> {
         8080,
     ))
     .await?;
-
-    println!("Listening on http://localhost:8080/cars");
 
     axum::serve(listener, app).await?;
 
