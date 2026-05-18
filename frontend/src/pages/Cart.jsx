@@ -30,13 +30,14 @@ export default function CartPage() {
         <Col lg={8}>
           {cart.map((item) => {
             const car = item.car;
+            const image_path = `http://localhost:8080${car.image_url}`;
 
             return (
               <Card key={car.id} className="mb-3 shadow-sm">
                 <Row className="g-0 align-items-center">
                   <Col md={4}>
                     <img
-                      src={car.image}
+                      src={image_path}
                       alt={car.name}
                       style={{
                         width: "100%",
