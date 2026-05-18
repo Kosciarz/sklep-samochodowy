@@ -1,10 +1,28 @@
-use axum::{Router, routing::get};
+use sqlx::{postgres::PgPoolOptions, prelude::FromRow};
+use anyhow::Result;
 
 #[tokio::main]
-async fn main() {
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+async fn main() -> Result<()> {
+    dotenv::dotenv().ok();
+    
+    let database_url = std::env::var("DATABASE_URL")?;
 
-    println!("Listening on http://localhost:3000/");
-    axum::serve(listener, app).await.unwrap();
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await?;
+
+    let cars: Vec<Car> = sqlx::query_as::<_, Car>("SELECT id, name, price, image_url FROM cars")
+        .fetch_all(&pool)
+        .await?;
+
+    Ok(())
+}
+
+#[derive(Debug, FromRow)]
+struct Car {
+    id: i32,
+    name: String,
+    price: i32,
+    image_url: String,
 }
