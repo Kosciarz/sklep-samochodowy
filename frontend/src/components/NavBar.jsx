@@ -15,6 +15,12 @@ export default function NavBar() {
             <Nav.Link as={NavLink} to="/cart">
               Cart
             </Nav.Link>
+            <Nav.Link as={NavLink} to="/login">
+              Sign In
+            </Nav.Link>
+            <Nav.Link as={NavLink} to="/register">
+              Register
+            </Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>
