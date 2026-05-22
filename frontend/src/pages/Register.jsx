@@ -40,7 +40,10 @@ export default function Register() {
         throw new Error(`Failed to send POST request: ${response.status}`);
       }
 
-      console.log(response);
+      const { token } = await response.json();
+      localStorage.setItem("token", token);
+
+      console.log(localStorage.getItem("token"));
     } catch (e) {
       console.error(e);
     }

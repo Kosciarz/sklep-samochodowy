@@ -10,8 +10,9 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
+use jsonwebtoken::{EncodingKey, Header};
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, postgres::PgPoolOptions, prelude::FromRow};
+use sqlx::{PgPool, postgres::PgPoolOptions, prelude::FromRow, types::chrono};
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
@@ -20,6 +21,7 @@ use tower_http::{
 #[derive(Clone)]
 struct AppState {
     db: PgPool,
+    jwt_secret: String,
 }
 
 #[derive(Debug, FromRow, Serialize)]
@@ -28,6 +30,22 @@ struct Car {
     name: String,
     price: i32,
     image_url: String,
+}
+
+#[derive(Debug, FromRow)]
+struct User {
+    id: i32,
+    email: String,
+    password_hash: String,
+    role: String,
+    created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    id: i32,
+    role: String,
 }
 
 async fn get_cars(State(state): State<AppState>) -> Json<Vec<Car>> {
@@ -45,12 +63,20 @@ struct RegisterRequest {
     password: String,
 }
 
+#[derive(Serialize)]
+struct AuthResponse {
+    token: String,
+}
+
+#[derive(Serialize)]
+struct ErrorResponse {
+    message: String,
+}
+
 async fn post_auth_register(
     State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
 ) -> impl IntoResponse {
-    println!("Register request: {} {}", body.email, body.password);
-
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
 
@@ -59,28 +85,45 @@ async fn post_auth_register(
         .unwrap()
         .to_string();
 
-    println!("Password hash: {password_hash}");
-
     match insert_user(&state.db, &body.email, &password_hash).await {
-        Ok(_) => {
-            println!("Inserted user: {} {}", body.email, body.password);
-            StatusCode::OK
+        Ok(user) => {
+            let claims = Claims {
+                sub: user.email,
+                id: user.id,
+                role: user.role,
+            };
+
+            let token = jsonwebtoken::encode(
+                &Header::default(),
+                &claims,
+                &EncodingKey::from_secret(state.jwt_secret.as_bytes()),
+            )
+            .unwrap();
+
+            (StatusCode::OK, Json(AuthResponse { token })).into_response()
         }
-        Err(e) => {
-            eprintln!("Failed to insert user: {e}");
-            StatusCode::CONFLICT
-        }
+        Err(e) => (
+            StatusCode::CONFLICT,
+            Json(ErrorResponse {
+                message: format!("Failed to insert user: {e}"),
+            }),
+        )
+            .into_response(),
     }
 }
 
-async fn insert_user(pool: &PgPool, email: &str, password_hash: &str) -> Result<()> {
-    sqlx::query("INSERT INTO users (email, password_hash) VALUES ($1, $2)")
-        .bind(email)
-        .bind(password_hash)
-        .execute(pool)
-        .await?;
+async fn insert_user(pool: &PgPool, email: &str, password_hash: &str) -> Result<User> {
+    let user: User = sqlx::query_as(
+        "INSERT INTO users (email, password_hash) 
+        VALUES ($1, $2)
+        RETURNING id, email, password_hash, role, created_at",
+    )
+    .bind(email)
+    .bind(password_hash)
+    .fetch_one(pool)
+    .await?;
 
-    Ok(())
+    Ok(user)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -93,8 +136,6 @@ async fn post_auth_login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
 ) -> impl IntoResponse {
-    println!("Login request: {} {}", body.email, body.password);
-
     let password_hash: String =
         match sqlx::query_scalar("SELECT password_hash FROM users WHERE email = $1")
             .bind(&body.email)
@@ -131,7 +172,8 @@ async fn post_auth_login(
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").unwrap();
+    let database_url = std::env::var("DATABASE_URL")?;
+    let jwt_secret = std::env::var("JWT_SECRET")?;
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -148,7 +190,7 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    let state = AppState { db: pool };
+    let state = AppState { db: pool, jwt_secret };
 
     let app = Router::new()
         .route("/cars", get(get_cars))
