@@ -1,5 +1,6 @@
 import "./App.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { AuthProvider } from "./components/AuthProvider";
 import { CartProvider } from "./components/CartProvider";
 import Root from "./pages/Root";
 import Home from "./pages/Home";
@@ -22,8 +23,10 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-    <CartProvider>
-      <RouterProvider router={router} />
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <RouterProvider router={router} />
+      </CartProvider>
+    </AuthProvider>
   );
 }

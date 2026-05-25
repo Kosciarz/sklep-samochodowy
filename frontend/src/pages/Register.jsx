@@ -6,11 +6,14 @@ import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "../components/AuthProvider";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordRepeat, setPasswordRepeat] = useState("");
+
+  const { login } = useAuth();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -41,8 +44,7 @@ export default function Register() {
       }
 
       const { token } = await response.json();
-
-      console.log(token);
+      login(token);
     } catch (e) {
       console.error(e);
     }
