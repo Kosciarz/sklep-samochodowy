@@ -41,9 +41,8 @@ export default function Register() {
       }
 
       const { token } = await response.json();
-      localStorage.setItem("token", token);
 
-      console.log(localStorage.getItem("token"));
+      console.log(token);
     } catch (e) {
       console.error(e);
     }

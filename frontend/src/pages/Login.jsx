@@ -34,7 +34,9 @@ export default function Login() {
         throw new Error(`Failed to send POST request: ${response.status}`);
       }
 
-      console.log(response);
+      let { token } = await response.json();
+
+      console.log(token);
     } catch (e) {
       console.error(e);
     }

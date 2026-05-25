@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use anyhow::Result;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
@@ -46,21 +48,7 @@ struct Claims {
     sub: String,
     id: i32,
     role: String,
-}
-
-async fn get_cars(State(state): State<AppState>) -> Json<Vec<Car>> {
-    let cars: Vec<Car> = sqlx::query_as::<_, Car>("SELECT id, name, price, image_url FROM cars")
-        .fetch_all(&state.db)
-        .await
-        .unwrap();
-
-    Json(cars)
-}
-
-#[derive(Serialize, Deserialize)]
-struct RegisterRequest {
-    email: String,
-    password: String,
+    exp: usize,
 }
 
 #[derive(Serialize)]
@@ -71,6 +59,12 @@ struct AuthResponse {
 #[derive(Serialize)]
 struct ErrorResponse {
     message: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct RegisterRequest {
+    email: String,
+    password: String,
 }
 
 async fn post_auth_register(
@@ -87,29 +81,31 @@ async fn post_auth_register(
 
     match insert_user(&state.db, &body.email, &password_hash).await {
         Ok(user) => {
-            let claims = Claims {
-                sub: user.email,
-                id: user.id,
-                role: user.role,
-            };
-
-            let token = jsonwebtoken::encode(
-                &Header::default(),
-                &claims,
-                &EncodingKey::from_secret(state.jwt_secret.as_bytes()),
-            )
-            .unwrap();
+            let token = generate_jwt_token(user, &state.jwt_secret).unwrap();
 
             (StatusCode::OK, Json(AuthResponse { token })).into_response()
         }
-        Err(e) => (
-            StatusCode::CONFLICT,
-            Json(ErrorResponse {
-                message: format!("Failed to insert user: {e}"),
-            }),
-        )
-            .into_response(),
+        Err(e) => {
+            eprintln!("Failed to insert user: {e}");
+
+            (
+                StatusCode::CONFLICT,
+                Json(ErrorResponse {
+                    message: "Email already exists".to_string(),
+                }),
+            )
+                .into_response()
+        }
     }
+}
+
+async fn get_cars(State(state): State<AppState>) -> Json<Vec<Car>> {
+    let cars: Vec<Car> = sqlx::query_as::<_, Car>("SELECT id, name, price, image_url FROM cars")
+        .fetch_all(&state.db)
+        .await
+        .unwrap();
+
+    Json(cars)
 }
 
 async fn insert_user(pool: &PgPool, email: &str, password_hash: &str) -> Result<User> {
@@ -136,37 +132,60 @@ async fn post_auth_login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
 ) -> impl IntoResponse {
-    let password_hash: String =
-        match sqlx::query_scalar("SELECT password_hash FROM users WHERE email = $1")
-            .bind(&body.email)
-            .fetch_optional(&state.db)
-            .await
-            .unwrap()
-        {
-            Some(hash) => hash,
-            None => return StatusCode::UNAUTHORIZED,
-        };
+    let user: User = match sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+        .bind(&body.email)
+        .fetch_one(&state.db)
+        .await
+    {
+        Ok(u) => u,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(ErrorResponse {
+                    message: format!("Failed to verify user {}", body.email),
+                }),
+            )
+                .into_response();
+        }
+    };
 
-    let parsed_hash = PasswordHash::new(&password_hash).unwrap();
+    let parsed_hash = PasswordHash::new(&user.password_hash).unwrap();
 
     match Argon2::default().verify_password(body.password.as_bytes(), &parsed_hash) {
         Ok(_) => {
-            println!(
-                "Verified user {} with password {}",
-                body.email, body.password
-            );
+            let token = generate_jwt_token(user, &state.jwt_secret).unwrap();
 
-            StatusCode::OK
+            (StatusCode::OK, Json(AuthResponse { token })).into_response()
         }
-        Err(_) => {
-            eprintln!(
-                "Failed to verify user {} with password {}",
-                body.email, body.password
-            );
-
-            StatusCode::UNAUTHORIZED
-        }
+        Err(_) => (
+            StatusCode::UNAUTHORIZED,
+            Json(ErrorResponse {
+                message: format!("Failed to verify user {}", body.email),
+            }),
+        )
+            .into_response(),
     }
+}
+
+fn generate_jwt_token(user: User, jwt_secret: &str) -> Result<String> {
+    let exp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as usize
+        + 60 * 60 * 24;
+
+    let claims = Claims {
+        sub: user.email,
+        id: user.id,
+        role: user.role,
+        exp,
+    };
+
+    Ok(jsonwebtoken::encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(jwt_secret.as_bytes()),
+    )?)
 }
 
 #[tokio::main]
@@ -190,7 +209,10 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    let state = AppState { db: pool, jwt_secret };
+    let state = AppState {
+        db: pool,
+        jwt_secret,
+    };
 
     let app = Router::new()
         .route("/cars", get(get_cars))
