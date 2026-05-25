@@ -4,7 +4,7 @@ import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 
@@ -14,6 +14,8 @@ export default function Register() {
   const [passwordRepeat, setPasswordRepeat] = useState("");
 
   const { login } = useAuth();
+
+  const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -45,6 +47,8 @@ export default function Register() {
 
       const { token } = await response.json();
       login(token);
+
+      navigate("/");
     } catch (e) {
       console.error(e);
     }

@@ -4,7 +4,7 @@ import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 
@@ -13,6 +13,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   const { login } = useAuth();
+
+  const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -36,9 +38,11 @@ export default function Login() {
       if (!response.ok) {
         throw new Error(`Failed to send POST request: ${response.status}`);
       }
-      
+
       let { token } = await response.json();
       login(token);
+
+      navigate("/");
     } catch (e) {
       console.error(e);
     }
